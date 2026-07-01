@@ -15,6 +15,7 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True,
 )
+server = app.server
 
 C = {
     "obsidian": "#0d0f14",
@@ -3913,4 +3914,4 @@ def run_scenario_comparison(
 
 
 if __name__ == "__main__":
-    app.run_server(host="0.0.0.0", port=8050)
+    app.run(host="0.0.0.0", port=8050)
