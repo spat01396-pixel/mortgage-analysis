@@ -929,9 +929,10 @@ def sc_rate_table(idx, rates):
     return html.Div(rows)
 
 
-def scenario_input_col(idx, color, label, currency, prefill=None):
+def scenario_input_col(idx, color, label, currency, prefill=None, show_rental_exit=False):
     accent = color
     p = prefill or {}
+    re_style = {} if show_rental_exit else {"display": "none"}
     return html.Div(
         [
             html.Div(
@@ -1103,54 +1104,82 @@ def scenario_input_col(idx, color, label, currency, prefill=None):
                 },
             ),
             html.Div(
-                "Rental",
-                className="field-label",
-                style={"marginBottom": "8px", "color": C["muted"]},
-            ),
-            html.Div(
                 [
-                    sc_field("Rent/mo", "sc-rent", idx, p.get("rent", 0), currency),
-                    sc_field("Tax", "sc-tax", idx, p.get("tax", 0), "%"),
-                ],
-                style={"display": "flex", "gap": "8px", "marginBottom": "8px"},
-            ),
-            html.Div(
-                [
-                    sc_field("Maint", "sc-maint", idx, p.get("maint", 0), "%"),
-                    sc_field(
-                        "Growth", "sc-rent-growth", idx, p.get("rent_growth", 2), "%"
+                    html.Div(
+                        "Rental",
+                        className="field-label",
+                        style={"marginBottom": "8px", "color": C["muted"]},
+                    ),
+                    html.Div(
+                        [
+                            sc_field(
+                                "Rent/mo", "sc-rent", idx, p.get("rent", 0), currency
+                            ),
+                            sc_field("Tax", "sc-tax", idx, p.get("tax", 0), "%"),
+                        ],
+                        style={"display": "flex", "gap": "8px", "marginBottom": "8px"},
+                    ),
+                    html.Div(
+                        [
+                            sc_field(
+                                "Maint", "sc-maint", idx, p.get("maint", 0), "%"
+                            ),
+                            sc_field(
+                                "Growth",
+                                "sc-rent-growth",
+                                idx,
+                                p.get("rent_growth", 2),
+                                "%",
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "gap": "8px",
+                            "marginBottom": "16px",
+                        },
+                    ),
+                    html.Div(
+                        "Exit Strategy",
+                        className="field-label",
+                        style={"marginBottom": "8px", "color": C["muted"]},
+                    ),
+                    html.Div(
+                        [
+                            sc_field(
+                                "Sale Yr", "sc-sell-year", idx, p.get("sell_year", 10)
+                            ),
+                            sc_field(
+                                "Price Gr",
+                                "sc-sell-price",
+                                idx,
+                                p.get("sell_price", 2),
+                                "%",
+                            ),
+                        ],
+                        style={"display": "flex", "gap": "8px", "marginBottom": "8px"},
+                    ),
+                    html.Div(
+                        [
+                            sc_field(
+                                "Inflation",
+                                "sc-inflation",
+                                idx,
+                                p.get("inflation", 2),
+                                "%",
+                            ),
+                            sc_field(
+                                "Sell Cost",
+                                "sc-sell-cost",
+                                idx,
+                                p.get("selling_costs", 5000),
+                                currency,
+                            ),
+                        ],
+                        style={"display": "flex", "gap": "8px"},
                     ),
                 ],
-                style={"display": "flex", "gap": "8px", "marginBottom": "16px"},
-            ),
-            html.Div(
-                "Exit Strategy",
-                className="field-label",
-                style={"marginBottom": "8px", "color": C["muted"]},
-            ),
-            html.Div(
-                [
-                    sc_field("Sale Yr", "sc-sell-year", idx, p.get("sell_year", 10)),
-                    sc_field(
-                        "Price Gr", "sc-sell-price", idx, p.get("sell_price", 2), "%"
-                    ),
-                ],
-                style={"display": "flex", "gap": "8px", "marginBottom": "8px"},
-            ),
-            html.Div(
-                [
-                    sc_field(
-                        "Inflation", "sc-inflation", idx, p.get("inflation", 2), "%"
-                    ),
-                    sc_field(
-                        "Sell Cost",
-                        "sc-sell-cost",
-                        idx,
-                        p.get("selling_costs", 5000),
-                        currency,
-                    ),
-                ],
-                style={"display": "flex", "gap": "8px"},
+                id={"type": "sc-rental-exit-wrap", "index": idx},
+                style=re_style,
             ),
         ],
         style={
@@ -1164,7 +1193,7 @@ def scenario_input_col(idx, color, label, currency, prefill=None):
     )
 
 
-def scenario_comparison_layout(scenarios_data, currency):
+def scenario_comparison_layout(scenarios_data, currency, show_rental_exit=False):
     """scenarios_data: list of prefill dicts (may be empty)"""
     n = len(scenarios_data)
 
@@ -1216,7 +1245,12 @@ def scenario_comparison_layout(scenarios_data, currency):
     else:
         cols = [
             scenario_input_col(
-                i, SCENARIO_COLORS[i], SCENARIO_LABELS[i], currency, scenarios_data[i]
+                i,
+                SCENARIO_COLORS[i],
+                SCENARIO_LABELS[i],
+                currency,
+                scenarios_data[i],
+                show_rental_exit,
             )
             for i in range(n)
         ]
@@ -1256,6 +1290,23 @@ def scenario_comparison_layout(scenarios_data, currency):
                     "marginLeft": "12px",
                     "alignSelf": "center",
                 },
+            ),
+            html.Button(
+                [
+                    html.I(
+                        className=(
+                            "bi bi-eye-slash"
+                            if show_rental_exit
+                            else "bi bi-eye"
+                        )
+                    ),
+                    " Hide Rental & Exit"
+                    if show_rental_exit
+                    else " Add Rental & Exit",
+                ],
+                id="sc-toggle-rental-exit-btn",
+                className="btn-ghost",
+                style={"marginLeft": "12px"},
             ),
         ],
         style={"display": "flex", "alignItems": "center", "marginBottom": "16px"},
@@ -2036,6 +2087,8 @@ app.layout = html.Div(
         dcc.Store(id="calc-inputs-store", data=DEFAULT_CALC),
         # Persists list of scenario prefill dicts
         dcc.Store(id="scenarios-data-store", data=[]),
+        # Whether Rental & Exit Strategy inputs/outputs are shown in Compare tab
+        dcc.Store(id="sc-show-rental-exit", data=False),
     ]
 )
 
@@ -2130,8 +2183,9 @@ def save_calc_inputs(
     Input("currency-store", "data"),
     State("calc-inputs-store", "data"),
     State("scenarios-data-store", "data"),
+    State("sc-show-rental-exit", "data"),
 )
-def navigate(c, cmp, g, currency, calc_state, scenarios_data):
+def navigate(c, cmp, g, currency, calc_state, scenarios_data, show_rental_exit):
 
     a, i = "nav-item-btn active", "nav-item-btn"
 
@@ -2144,7 +2198,14 @@ def navigate(c, cmp, g, currency, calc_state, scenarios_data):
         return glossary_layout(), i, i, a
 
     if tid == "nav-compare":
-        return scenario_comparison_layout(scenarios_data or [], currency), i, a, i
+        return (
+            scenario_comparison_layout(
+                scenarios_data or [], currency, show_rental_exit or False
+            ),
+            i,
+            a,
+            i,
+        )
 
     return calculator_layout(currency, calc_state), a, i, i
 
@@ -2428,9 +2489,12 @@ def add_to_comparison(n_clicks, name, calc_state, scenarios_data, currency):
     Output("nav-calc", "className", allow_duplicate=True),
     Output("nav-compare", "className", allow_duplicate=True),
     Output("nav-gloss", "className", allow_duplicate=True),
+    Output("sc-show-rental-exit", "data", allow_duplicate=True),
     Input("sc-add-btn", "n_clicks"),
     Input("sc-remove-btn", "n_clicks"),
+    Input("sc-toggle-rental-exit-btn", "n_clicks"),
     State("scenarios-data-store", "data"),
+    State("sc-show-rental-exit", "data"),
     # Capture current field values so we don't lose edits when adding/removing
     State({"type": "sc-name", "index": ALL}, "value"),
     State({"type": "sc-price", "index": ALL}, "value"),
@@ -2451,7 +2515,9 @@ def add_to_comparison(n_clicks, name, calc_state, scenarios_data, currency):
 def adjust_scenarios(
     add,
     remove,
+    toggle_rental_exit,
     stored_data,
+    show_rental_exit,
     names,
     prices,
     loans,
@@ -2468,8 +2534,9 @@ def adjust_scenarios(
     currency,
 ):
     # Guard: only fire when a button was actually clicked (not on page mount)
-    if add is None and remove is None:
+    if add is None and remove is None and toggle_rental_exit is None:
         return (
+            dash.no_update,
             dash.no_update,
             dash.no_update,
             dash.no_update,
@@ -2508,8 +2575,19 @@ def adjust_scenarios(
     elif tid == "sc-remove-btn" and len(synced) > 0:
         synced = synced[:-1]
 
+    new_show_rental_exit = show_rental_exit
+    if tid == "sc-toggle-rental-exit-btn":
+        new_show_rental_exit = not show_rental_exit
+
     a, i = "nav-item-btn active", "nav-item-btn"
-    return scenario_comparison_layout(synced, currency), synced, i, a, i
+    return (
+        scenario_comparison_layout(synced, currency, new_show_rental_exit),
+        synced,
+        i,
+        a,
+        i,
+        new_show_rental_exit,
+    )
 
 
 # ── Scenario prepayment rules (multi-rule, add/delete per scenario) ──────
@@ -3345,6 +3423,7 @@ def update_all(
     State({"type": "sc-sell-cost", "index": ALL}, "value"),
     State("scenarios-data-store", "data"),
     State("currency-store", "data"),
+    State("sc-show-rental-exit", "data"),
     prevent_initial_call=True,
 )
 def run_scenario_comparison(
@@ -3365,6 +3444,7 @@ def run_scenario_comparison(
     sell_costs,
     stored_data,
     currency,
+    show_rental_exit,
 ):
     if _ is None:
         return dash.no_update
@@ -3438,18 +3518,25 @@ def run_scenario_comparison(
         ),
         ("Effective Rate", [f"{s['eff_rate']:.2%}" for s in scenarios], True),
         ("Payoff Years", [f"{s['payoff_years']:.1f} yrs" for s in scenarios], True),
-        (
-            "Yr 1 Cashflow/mo",
-            [f"{cur}{s['yr1_cashflow']:,.0f}" for s in scenarios],
-            False,
-        ),
-        ("Sale Proceeds", [f"{cur}{s['proceeds']:,.0f}" for s in scenarios], False),
-        (
-            "Net Financial Profit",
-            [f"{cur}{s['fin_gain']:,.0f}" for s in scenarios],
-            False,
-        ),
     ]
+    if show_rental_exit:
+        kpi_rows += [
+            (
+                "Yr 1 Cashflow/mo",
+                [f"{cur}{s['yr1_cashflow']:,.0f}" for s in scenarios],
+                False,
+            ),
+            (
+                "Sale Proceeds",
+                [f"{cur}{s['proceeds']:,.0f}" for s in scenarios],
+                False,
+            ),
+            (
+                "Net Financial Profit",
+                [f"{cur}{s['fin_gain']:,.0f}" for s in scenarios],
+                False,
+            ),
+        ]
 
     header_row = html.Tr(
         [
@@ -3607,17 +3694,6 @@ def run_scenario_comparison(
         y_prefix="",
         suffix_fmt="{:.1f} yrs",
     )
-    bar_cf = sc_bar(
-        "Yr 1 Net Cashflow/mo",
-        [s["yr1_cashflow"] for s in scenarios],
-        "Higher is better",
-    )
-    bar_proceeds = sc_bar(
-        "Sale Proceeds", [s["proceeds"] for s in scenarios], "Higher is better"
-    )
-    bar_fin = sc_bar(
-        "Net Financial Profit", [s["fin_gain"] for s in scenarios], "Higher is better"
-    )
     bar_years.update_layout(
         yaxis=dict(
             gridcolor="rgba(37,42,56,0.6)",
@@ -3637,6 +3713,36 @@ def run_scenario_comparison(
             responsive=True,
         )
 
+    def chart_section(title, fig, height="380px"):
+        return html.Div(
+            [
+                html.Div(
+                    title,
+                    style={
+                        "fontFamily": "DM Serif Display, serif",
+                        "fontSize": "1.15rem",
+                        "color": C["platinum"],
+                        "marginBottom": "12px",
+                    },
+                ),
+                html.Div(
+                    dcc.Graph(
+                        figure=fig,
+                        config={"displayModeBar": False},
+                        style={"height": height},
+                        responsive=True,
+                    ),
+                    style={
+                        "background": C["panel"],
+                        "border": f"1px solid {C['border2']}",
+                        "borderRadius": "12px",
+                        "padding": "12px",
+                    },
+                ),
+            ],
+            style={"marginBottom": "24px"},
+        )
+
     bar_grid = html.Div(
         [
             html.Div(
@@ -3651,10 +3757,6 @@ def run_scenario_comparison(
                     "gap": "12px",
                     "width": "100%",
                 },
-            ),
-            html.Div(
-                gchart(bar_fin),
-                style={"marginTop": "16px"},
             ),
         ]
     )
@@ -3690,35 +3792,6 @@ def run_scenario_comparison(
         }
     )
 
-    balance_section = html.Div(
-        [
-            html.Div(
-                "Balance Trajectories",
-                style={
-                    "fontFamily": "DM Serif Display, serif",
-                    "fontSize": "1.15rem",
-                    "color": C["platinum"],
-                    "marginBottom": "12px",
-                },
-            ),
-            html.Div(
-                dcc.Graph(
-                    figure=fig_bal,
-                    config={"displayModeBar": False},
-                    style={"height": "380px"},
-                    responsive=True,
-                ),
-                style={
-                    "background": C["panel"],
-                    "border": f"1px solid {C['border2']}",
-                    "borderRadius": "12px",
-                    "padding": "12px",
-                },
-            ),
-        ],
-        style={"marginBottom": "24px"},
-    )
-
     fig_emi = go.Figure()
     for s in scenarios:
         sch = s["schedule"]
@@ -3745,36 +3818,72 @@ def run_scenario_comparison(
         }
     )
 
-    emi_section = html.Div(
-        [
-            html.Div(
-                "EMI Trajectories",
-                style={
-                    "fontFamily": "DM Serif Display, serif",
-                    "fontSize": "1.15rem",
-                    "color": C["platinum"],
-                    "marginBottom": "12px",
-                },
-            ),
-            html.Div(
-                dcc.Graph(
-                    figure=fig_emi,
-                    config={"displayModeBar": False},
-                    style={"height": "380px"},
-                    responsive=True,
-                ),
-                style={
-                    "background": C["panel"],
-                    "border": f"1px solid {C['border2']}",
-                    "borderRadius": "12px",
-                    "padding": "12px",
-                },
-            ),
-        ],
-        style={"marginBottom": "24px"},
-    )
+    core_sections = [
+        kpi_table,
+        bar_grid,
+        chart_section("Balance Trajectories", fig_bal),
+        chart_section("EMI Trajectories", fig_emi),
+    ]
 
-    return html.Div([kpi_table, bar_grid, balance_section, emi_section])
+    if show_rental_exit:
+        bar_cf = sc_bar(
+            "Yr 1 Net Cashflow/mo",
+            [s["yr1_cashflow"] for s in scenarios],
+            "Higher is better",
+        )
+        bar_proceeds = sc_bar(
+            "Sale Proceeds", [s["proceeds"] for s in scenarios], "Higher is better"
+        )
+        bar_fin = sc_bar(
+            "Net Financial Profit",
+            [s["fin_gain"] for s in scenarios],
+            "Higher is better",
+        )
+        rental_exit_section = html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(
+                            className="bi bi-house-door",
+                            style={"marginRight": "8px", "color": C["gold"]},
+                        ),
+                        "Rental & Exit Strategy",
+                    ],
+                    style={
+                        "fontFamily": "DM Serif Display, serif",
+                        "fontSize": "1.15rem",
+                        "color": C["platinum"],
+                        "marginBottom": "16px",
+                        "paddingBottom": "10px",
+                        "borderBottom": f"1px solid {C['border2']}",
+                    },
+                ),
+                html.Div(
+                    [
+                        html.Div(gchart(bar_cf), className="chart-cell"),
+                        html.Div(gchart(bar_proceeds), className="chart-cell"),
+                        html.Div(gchart(bar_fin), className="chart-cell"),
+                    ],
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns": "repeat(3, minmax(0, 1fr))",
+                        "gap": "12px",
+                        "width": "100%",
+                    },
+                ),
+            ],
+            style={
+                "background": C["panel"],
+                "border": f"1px solid {C['border2']}",
+                "borderRadius": "12px",
+                "padding": "18px",
+                "marginTop": "24px",
+                "marginBottom": "24px",
+            },
+        )
+        core_sections.append(rental_exit_section)
+
+    return html.Div(core_sections)
 
 
 if __name__ == "__main__":
