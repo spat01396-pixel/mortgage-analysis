@@ -400,36 +400,52 @@ def calculator_layout(currency, state=None):
                                         className="field-label",
                                         style={"marginBottom": "4px"},
                                     ),
-                                    dbc.Input(
-                                        id="calc-scenario-name",
-                                        value=s.get("scenario_name", "My Scenario"),
-                                        className="input-dark",
+                                    html.Div(
+                                        [
+                                            dbc.Input(
+                                                id="calc-scenario-name",
+                                                value=s.get(
+                                                    "scenario_name", "My Scenario"
+                                                ),
+                                                className="input-dark",
+                                                style={
+                                                    "fontSize": "0.78rem",
+                                                    "padding": "5px 10px",
+                                                    "width": "180px",
+                                                },
+                                            ),
+                                            html.Button(
+                                                [
+                                                    html.I(
+                                                        className="bi bi-plus-circle"
+                                                    ),
+                                                    " Add to Comparison",
+                                                ],
+                                                id="add-to-comparison-btn",
+                                                className="btn-gold",
+                                                style={
+                                                    "fontSize": "0.68rem",
+                                                    "padding": "4px 10px",
+                                                },
+                                            ),
+                                            html.Div(
+                                                id="add-to-comparison-feedback",
+                                                style={
+                                                    "fontFamily": "DM Mono, monospace",
+                                                    "fontSize": "0.65rem",
+                                                    "color": C["green"],
+                                                    "alignSelf": "center",
+                                                },
+                                            ),
+                                        ],
                                         style={
-                                            "fontSize": "0.78rem",
-                                            "padding": "5px 10px",
-                                            "width": "180px",
+                                            "display": "flex",
+                                            "alignItems": "center",
+                                            "gap": "8px",
                                         },
                                     ),
                                 ],
                                 style={"display": "flex", "flexDirection": "column"},
-                            ),
-                            html.Button(
-                                [
-                                    html.I(className="bi bi-plus-circle"),
-                                    " Add to Comparison",
-                                ],
-                                id="add-to-comparison-btn",
-                                className="btn-gold",
-                                style={"fontSize": "0.8rem", "padding": "6px 14px"},
-                            ),
-                            html.Div(
-                                id="add-to-comparison-feedback",
-                                style={
-                                    "fontFamily": "DM Mono, monospace",
-                                    "fontSize": "0.7rem",
-                                    "color": C["green"],
-                                    "alignSelf": "center",
-                                },
                             ),
                         ],
                         style={
@@ -846,8 +862,6 @@ def calculator_layout(currency, state=None):
 
 
 # ─────────────────────────────────────────────
-# SCENARIO COMPARISON LAYOUT
-# ─────────────────────────────────────────────
 # ─────────────────────────────────────────────
 # SCENARIO RULE TABLE HELPERS (multi-rule prepayment / variable rate)
 # ─────────────────────────────────────────────
@@ -929,7 +943,9 @@ def sc_rate_table(idx, rates):
     return html.Div(rows)
 
 
-def scenario_input_col(idx, color, label, currency, prefill=None, show_rental_exit=False):
+def scenario_input_col(
+    idx, color, label, currency, prefill=None, show_rental_exit=False
+):
     accent = color
     p = prefill or {}
     re_style = {} if show_rental_exit else {"display": "none"}
@@ -1121,9 +1137,7 @@ def scenario_input_col(idx, color, label, currency, prefill=None, show_rental_ex
                     ),
                     html.Div(
                         [
-                            sc_field(
-                                "Maint", "sc-maint", idx, p.get("maint", 0), "%"
-                            ),
+                            sc_field("Maint", "sc-maint", idx, p.get("maint", 0), "%"),
                             sc_field(
                                 "Growth",
                                 "sc-rent-growth",
@@ -1295,14 +1309,10 @@ def scenario_comparison_layout(scenarios_data, currency, show_rental_exit=False)
                 [
                     html.I(
                         className=(
-                            "bi bi-eye-slash"
-                            if show_rental_exit
-                            else "bi bi-eye"
+                            "bi bi-eye-slash" if show_rental_exit else "bi bi-eye"
                         )
                     ),
-                    " Hide Rental & Exit"
-                    if show_rental_exit
-                    else " Add Rental & Exit",
+                    " Hide Rental & Exit" if show_rental_exit else " Add Rental & Exit",
                 ],
                 id="sc-toggle-rental-exit-btn",
                 className="btn-ghost",
@@ -3653,15 +3663,18 @@ def run_scenario_comparison(
 
     def sc_bar(title, values, subtitle="", y_prefix=None, suffix_fmt=None):
         yp = y_prefix if y_prefix is not None else cur
+        n = len(scenarios)
+        # One trace per scenario so each gets its own colour, but we place
+        # them all on the same dummy x-category ("") and use barmode="group"
+        # so Plotly handles side-by-side spacing with no overlap.
         fig = go.Figure()
         for s, v in zip(scenarios, values):
             display = suffix_fmt.format(v) if suffix_fmt else f"{cur}{v:,.0f}"
             fig.add_trace(
                 go.Bar(
                     name=s["name"],
-                    x=[s["name"]],
+                    x=[""],
                     y=[abs(v)],
-                    width=0.1,
                     marker=dict(
                         color=s["color"],
                         opacity=0.85,
@@ -3670,15 +3683,28 @@ def run_scenario_comparison(
                     text=[display],
                     textposition="outside",
                     textfont=dict(
-                        family="DM Mono, monospace", size=11, color=C["platinum"]
+                        family="DM Mono, monospace", size=13, color=C["platinum"]
                     ),
                     hovertemplate=f"<b>{s['name']}</b><br>{display}<extra></extra>",
                 )
             )
         layout = chart_layout(title, y_prefix=yp, subtitle=subtitle)
-        layout["showlegend"] = False
-        layout["bargap"] = 0.1
-        layout["margin"] = dict(l=44, r=16, t=60, b=36)
+        layout["showlegend"] = True
+        layout["legend"] = dict(
+            orientation="h",
+            y=-0.18,
+            x=0.5,
+            xanchor="center",
+            font=dict(family="DM Mono, monospace", size=10, color=C["muted"]),
+            bgcolor="rgba(0,0,0,0)",
+        )
+        layout["barmode"] = "group"
+        layout["bargap"] = 0.3
+        layout["bargroupgap"] = 0.08
+        layout["margin"] = dict(l=44, r=16, t=60, b=48)
+        layout["xaxis"] = dict(
+            showticklabels=False, showgrid=False, linecolor=C["border"]
+        )
         fig.update_layout(**layout)
         fig.update_traces(cliponaxis=False)
         return fig
