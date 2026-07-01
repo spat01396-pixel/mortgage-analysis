@@ -15,7 +15,6 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True,
 )
-server = app.server
 
 C = {
     "obsidian": "#0d0f14",
